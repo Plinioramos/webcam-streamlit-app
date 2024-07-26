@@ -3,12 +3,14 @@ import cv2
 import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase
+from pathlib import Path
 
 class VideoProcessor(VideoProcessorBase):
     def __init__(self):
         self.recording = False
         self.frames = []
         self.out = None
+        self.video_path = None
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -27,7 +29,8 @@ class VideoProcessor(VideoProcessorBase):
         if len(self.frames) > 0:
             height, width, _ = self.frames[0].shape
             fourcc = cv2.VideoWriter_fourcc(*"XVID")
-            self.out = cv2.VideoWriter("output.avi", fourcc, 20.0, (width, height))
+            self.video_path = Path("output.avi")
+            self.out = cv2.VideoWriter(str(self.video_path), fourcc, 20.0, (width, height))
 
             for frame in self.frames:
                 self.out.write(frame)
@@ -52,4 +55,14 @@ if webrtc_ctx.video_processor:
     if st.button("Stop Recording"):
         webrtc_ctx.video_processor.stop_recording()
         st.success("Recording saved to output.avi")
+
+        if webrtc_ctx.video_processor.video_path:
+            with open(webrtc_ctx.video_processor.video_path, "rb") as video_file:
+                btn = st.download_button(
+                    label="Download Video",
+                    data=video_file,
+                    file_name="output.avi",
+                    mime="video/x-msvideo"
+                )
+
 
